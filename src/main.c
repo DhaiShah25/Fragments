@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
   Rectangle rect;
@@ -8,12 +9,20 @@ typedef struct {
   Color color;
 } Sprite;
 
-constexpr int CanvasWidth = 640;
-constexpr int CanvasHeight = 360;
+constexpr int CanvasWidth = 720;
+constexpr int CanvasHeight = 720;
 
-int scale = 0;
+enum TutorialStage {
+  Movement,
+  Attacks,
+  Effects,
+  Weaknesses,
+  CastTime,
+  Merging,
+};
 
 void move_player(Sprite *player) {
+  // Normalize Player Movement Velocity
   if (IsKeyDown(KEY_A)) {
     player->rect.x -= 100 * GetFrameTime();
   }
@@ -34,19 +43,21 @@ void move_player(Sprite *player) {
   }
   if (player->rect.y + player->rect.height > CanvasHeight) {
     player->rect.y = CanvasHeight - player->rect.height;
-  }
-  if (player->rect.y < 0) {
+  } else if (player->rect.y < 0) {
     player->rect.y = 0;
   }
 }
 
 int main(void) {
-  InitWindow(CanvasWidth << scale, CanvasHeight << scale,
-             "Raylib 6.x Game Jam");
+  InitWindow(CanvasWidth, CanvasHeight, "Raylib 6.x Game Jam");
+
+  Font iosevka = LoadFontEx("resources/Iosevka.ttf", 40, nullptr, 0);
+
+  printf("%d, %d, %d\n", iosevka.baseSize, iosevka.glyphCount,
+         iosevka.glyphPadding);
 
   int currentFps = 60;
-  int tutorialStage = 1;
-  // bool paused = false;
+  enum TutorialStage stage = Movement;
 
   Sprite player = {.rect = (Rectangle){0, 0, 40, 40},
                    .color = (Color){40, 120, 40, 255}};
@@ -59,12 +70,37 @@ int main(void) {
 
     // Drawing
     BeginDrawing();
-    ClearBackground((Color){175, 200, 255, 255});
+    ClearBackground((Color){25, 10, 10, 255});
+
+    if (IsKeyPressed(KEY_SPACE))
+      stage++;
 
     DrawRectangleRec(player.rect, player.color);
 
+    switch (stage) {
+      case Movement:
+        // DrawText("Use WASD keys to move around", 0, 0, 20, LIGHTGRAY);
+        DrawTextEx(iosevka, "Use WASD keys to move around", (Vector2){0, 0}, 40,
+                   0, LIGHTGRAY);
+        break;
+      case Attacks:
+        DrawText("Use the JKL keys to attack\nYou have 3 attacks you can equip "
+                 "at any point in time",
+                 0, 0, 40, RAYWHITE);
+        break;
+      case Effects:
+        break;
+      case Weaknesses:
+        break;
+      case CastTime:
+        break;
+      case Merging:
+        break;
+    }
+
     EndDrawing();
   }
+
   CloseWindow();
 
   return 0;
