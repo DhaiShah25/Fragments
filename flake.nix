@@ -21,7 +21,6 @@
         libxkbcommon
         wayland
         wayland-protocols
-        raylib
       ];
 
       nativeBuildInputs = with pkgs; [

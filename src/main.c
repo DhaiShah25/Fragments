@@ -26,6 +26,18 @@ void move_player(Sprite *player) {
   if (IsKeyDown(KEY_S)) {
     player->rect.y += 100 * GetFrameTime();
   }
+
+  if (player->rect.x + player->rect.width > CanvasWidth) {
+    player->rect.x = CanvasWidth - player->rect.width;
+  } else if (player->rect.x < 0) {
+    player->rect.x = 0;
+  }
+  if (player->rect.y + player->rect.height > CanvasHeight) {
+    player->rect.y = CanvasHeight - player->rect.height;
+  }
+  if (player->rect.y < 0) {
+    player->rect.y = 0;
+  }
 }
 
 int main(void) {
@@ -33,7 +45,7 @@ int main(void) {
              "Raylib 6.x Game Jam");
 
   int currentFps = 60;
-  // bool tutorial_completed = true;
+  int tutorialStage = 1;
   // bool paused = false;
 
   Sprite player = {.rect = (Rectangle){0, 0, 40, 40},
