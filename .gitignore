@@ -1,0 +1,21 @@
+# Clangd LSP
+.cache
+compile_commands.json
+
+# Build folder
+bin/
+
+# Android files
+*apk*
+android.*
+
+# WebAssembly release files
+*.data
+*.wasm
+*.html
+*.js
+!src/minshell.html
+!src/shell.html
+
+.direnv
+.github
