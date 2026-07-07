@@ -19,6 +19,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD_REQUIRED ON
 )
 
+set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
+elseif(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/raygui/src/")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
