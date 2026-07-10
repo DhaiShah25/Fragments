@@ -1,66 +1,67 @@
 #include <math.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <rcamera.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-Font iosevka;
-
-typedef enum : uint8_t {
-  // Starting Animation
-  Animation,
-  // Tutorial
-  Movement,
-  Escape,
-  Attacks,
-  Effects,
-  Weaknesses,
-  CastTime,
-  Merging,
-} GameStage;
-
-inline void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color) {
-  DrawTextEx(iosevka, text, pos, fontSize, 0, color);
-}
-
-inline void draw_start_animation(float *timePassed, GameStage *stage);
-
-typedef struct {
-  Rectangle rect;
-  // Texture2D texture;
-  Color color;
-} Sprite;
+#include "environment.c"
+#include "spells.c"
 
 constexpr int CanvasWidth = 720;
 constexpr int CanvasHeight = 720;
 
+typedef struct Sprite {
+  Rectangle rect;
+  // Texture2D texture;
+  Color color;
+  Vector2 velocity;
+} Sprite;
+
+Font iosevka;
+
+void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color) {
+  DrawTextEx(iosevka, text, pos, fontSize, 0, color);
+}
+
+void draw_start_animation(float *timePassed, GameStage *stage);
+
 void move_player(Sprite *player) {
-  // Normalize Player Movement Velocity
+  player->velocity = (Vector2){0, 0};
+  // TODO: Normalize Player Movement Velocity
   if (IsKeyDown(KEY_A)) {
-    player->rect.x -= 100 * GetFrameTime();
+    player->velocity.x -= 1;
   }
   if (IsKeyDown(KEY_D)) {
-    player->rect.x += 100 * GetFrameTime();
+    player->velocity.x += 1;
   }
   if (IsKeyDown(KEY_W)) {
-    player->rect.y -= 100 * GetFrameTime();
+    player->velocity.y -= 1;
   }
   if (IsKeyDown(KEY_S)) {
-    player->rect.y += 100 * GetFrameTime();
+    player->velocity.y += 1;
   }
 
-  if (player->rect.x + player->rect.width > CanvasWidth) {
-    player->rect.x = CanvasWidth - player->rect.width;
-  } else if (player->rect.x < 0) {
-    player->rect.x = 0;
-  }
-  if (player->rect.y + player->rect.height > CanvasHeight) {
-    player->rect.y = CanvasHeight - player->rect.height;
-  } else if (player->rect.y < 0) {
-    player->rect.y = 0;
-  }
+  // Vector2 touch_pos = GetTouchPosition(0);
+  // if (touch_pos.x != -1 && touch_pos.y != -1 && player->velocity.x == 0 && player->velocity.y == 0)
+  //   player->velocity = Vector2Subtract(touch_pos, (Vector2){player->rect.x, player->rect.y});
+
+  player->velocity = Vector2Normalize(player->velocity);
+  player->rect.x += player->velocity.x * GetFrameTime() * 100;
+  player->rect.y += player->velocity.y * GetFrameTime() * 100;
+
+  // if (player->rect.x + player->rect.width > CanvasWidth) {
+  //   player->rect.x = CanvasWidth - player->rect.width;
+  // } else if (player->rect.x < 0) {
+  //   player->rect.x = 0;
+  // }
+  // if (player->rect.y + player->rect.height > CanvasHeight) {
+  //   player->rect.y = CanvasHeight - player->rect.height;
+  // } else if (player->rect.y < 0) {
+  //   player->rect.y = 0;
+  // }
 }
 
 int main(void) {
@@ -70,26 +71,30 @@ int main(void) {
   iosevka = LoadFontEx("resources/Iosevka.ttf", 40, nullptr, 0);
 
   int currentFps = 60;
-  GameStage stage = Animation;
+  GameStage stage = Movement;
+  uint16_t map[15] = {0};
+  int floor = -1;
+  Vector2 fragment_location;
 
-  Sprite player = {.rect = (Rectangle){0, 0, 40, 40}, .color = (Color){40, 120, 40, 255}};
+  Sprite player = {.rect = (Rectangle){200, 200, 40, 40}, .color = (Color){40, 120, 40, 255}};
+
+  Camera2D camera = {0};
+  camera.target = (Vector2){220, 220};
+  camera.offset = (Vector2){360, 360};
+  camera.rotation = 0.0f;
+  camera.zoom = 1.0f;
 
   float timePassed = 0.0f;
 
   SetTargetFPS(currentFps);
 
   while (!WindowShouldClose()) {
-    // Input
     if (stage >= Movement)
       move_player(&player);
 
     // Drawing
     BeginDrawing();
-    ClearBackground((Color){40, 20, 20, 255});
-
-    if (stage >= Movement) {
-      DrawRectangleRec(player.rect, player.color);
-    }
+    ClearBackground(BLACK);
 
     switch (stage) {
       case Animation:
@@ -97,18 +102,35 @@ int main(void) {
         draw_start_animation(&timePassed, &stage);
         break;
       case Movement:
-        if (player.rect.x != 0 || player.rect.y != 0)
+        DrawRectangleRec(player.rect, player.color);
+        if (player.rect.x != 200 || player.rect.y != 200) {
           stage++;
-        else
+          fragment_location = gen_map(map);
+          TraceLog(LOG_INFO, "Fragment Location: %f, %f", fragment_location.x, fragment_location.y);
+        } else
           DrawLabel("Use WASD keys to move around", (Vector2){0, 0}, 40, RAYWHITE);
         break;
       case Escape:
-        DrawLabel("You have to reach the door in the room", (Vector2){0, 0}, 40, RAYWHITE);
+        camera.target = (Vector2){player.rect.x + 20, player.rect.y + 20};
+        BeginMode2D(camera);
+        for (int x = 0; x < 15; x++) {
+          for (int y = 0; y < 15; y++) {
+            if (map[x] & 1 << y) {
+              DrawRectangle(x * 160, y * 160, 160, 160, (Color){100, 20, 20, 255});
+            } else
+              DrawRectangle(x * 160, y * 160, 160, 160, (Color){40, 20, 20, 255});
+          }
+        }
+        DrawRectangleRec(player.rect, player.color);
+        EndMode2D();
+        DrawLabel("You have to collect the picture frame\nfragment in order to move to the next room", (Vector2){0, 0},
+                  40, RAYWHITE);
         break;
       case Attacks:
         DrawLabel("Use the JKL keys or the buttons on the bottom\nright to "
                   "attack in the direction you are\nmoving",
                   (Vector2){0, 0}, 40, RAYWHITE);
+        floor++;
         break;
       case Effects:
         break;
@@ -117,6 +139,12 @@ int main(void) {
       case CastTime:
         break;
       case Merging:
+        break;
+      case Floors:
+        break;
+      case Victory:
+        break;
+      case Loss:
         break;
     }
 
@@ -141,20 +169,14 @@ int main(void) {
     EndDrawing();
   }
 
+  gen_map(map);
+  gen_map(map);
+
   UnloadFont(iosevka);
   CloseWindow();
 
   return 0;
 }
-
-enum SpellClasses : uint8_t { Fire, Water, Earth, Air, Shadow, Light };
-
-struct Spell {
-  const char *const name;
-  const enum SpellClasses class;
-  float castTime;
-  uint8_t level;
-};
 
 void draw_start_animation(float *timePassedptr, GameStage *stage) {
   float timePassed = *timePassedptr;
