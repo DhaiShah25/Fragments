@@ -21,6 +21,7 @@
         libxkbcommon
         wayland
         wayland-protocols
+        libffi
       ];
 
       nativeBuildInputs = with pkgs; [

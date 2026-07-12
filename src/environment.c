@@ -1,31 +1,9 @@
+#include "global.h"
 #include <raylib.h>
 #include <stddef.h>
 #include <stdint.h>
 
-constexpr size_t MAP_SIZE = 15;
-constexpr float TILE_SIZE = 32.0;
-
-typedef enum GameStage : uint8_t {
-  GUI,
-  // Starting Animation
-  Animation,
-  // Tutorial
-  Movement,
-  Attacks,
-  Escape,
-  // Gameplay
-  FloorChange,
-  Floors,
-  Victory,
-  Loss
-} GameStage;
-
-typedef enum TileType {
-  Floor,
-  Bookshelf,
-} TileType;
-
-Vector2 gen_map(uint8_t map[MAP_SIZE][MAP_SIZE]) {
+Vector2 gen_map(GameMap map) {
   for (size_t i = 0; i < MAP_SIZE; i++) {
     for (size_t j = 0; j < MAP_SIZE; j++) {
       map[i][j] = 1;
@@ -60,8 +38,7 @@ Vector2 gen_map(uint8_t map[MAP_SIZE][MAP_SIZE]) {
   return (Vector2){x, y};
 }
 
-void draw_map(uint8_t map[MAP_SIZE][MAP_SIZE], Vector2 fragment_location) {
-  // TODO: Stop copying the 2D map array
+void draw_map(GameMap map, Vector2 fragment_location) {
   for (int x = 0; x < MAP_SIZE; x++) {
     for (int y = 0; y < MAP_SIZE; y++) {
       if (map[x][y]) {
