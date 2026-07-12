@@ -49,7 +49,7 @@ typedef enum SpellTypess : uint8_t {
 } SpellTypes;
 
 typedef struct Spell {
-  const SpellClasses class;
+  SpellClasses class;
   float castTime;
   float damage;
   SpellTypes type;
@@ -65,7 +65,7 @@ typedef struct Sprite {
   Color color;
   Vector2 dir;
   float speedMultiplier;
-  uint8_t health;
+  float health;
 } Sprite;
 
 void move_sprite(Sprite *player, GameMap map, Vector2 velocity);

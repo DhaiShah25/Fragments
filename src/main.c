@@ -32,6 +32,7 @@ typedef struct GameContext {
 } GameContext;
 
 void UpdateDrawFrame(void *ctx);
+void setup_ctx(GameContext *ctx);
 
 Font iosevka40;
 Font iosevka20;
@@ -63,23 +64,8 @@ int main(void) {
   iosevka40 = LoadFontEx("resources/Iosevka.ttf", 40, nullptr, 0);
   iosevka20 = LoadFontEx("resources/Iosevka.ttf", 20, nullptr, 0);
 
-  GameContext ctx = {
-      .stage = StartScreen,
-      .open_inventory = false,
-      .player = {.center = {TILE_SIZE * 1.5, TILE_SIZE * 1.5},
-                 .color = (Color){40, 120, 40, 255},
-                 .radius = TILE_SIZE / 8,
-                 .speedMultiplier = 1.0f},
-      .camera = {.target = {220, 220}, .offset = {360, 360}, .zoom = 2.0f},
-      .equippedSpell =
-          {
-              .class = Damage,
-              .castTime = 2.,
-              .damage = 10.,
-              .type = FrontAttack,
-          },
-      .castCooldown = 4.0f,
-  };
+  GameContext ctx = {0};
+  setup_ctx(&ctx);
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(UpdateDrawFrame, &ctx, 0, 1);
@@ -111,6 +97,10 @@ void UpdateDrawFrame(void *ctxptr) {
 
   if (IsKeyPressed(KEY_E)) {
     ctx->open_inventory = !ctx->open_inventory;
+  }
+
+  if (ctx->player.health <= 0) {
+    ctx->stage = Loss;
   }
 
   // Drawing
@@ -207,6 +197,13 @@ void UpdateDrawFrame(void *ctxptr) {
       DrawLabel("You Got Your Cats Back", (Vector2){180, 420}, 40, RAYWHITE);
       break;
     case Loss:
+      Rectangle lossRect = {290, 310, 150, 60};
+      DrawRectangleRec(tutRec, (Color){20, 20, 20, 255});
+      DrawLabel("Restart!", (Vector2){300, 320}, 40, RAYWHITE);
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tutRec)) {
+        setup_ctx(ctx);
+      }
+
       break;
   }
 
@@ -247,4 +244,31 @@ void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color) {
     DrawTextEx(iosevka40, text, pos, fontSize, 0, color);
   else
     DrawTextEx(iosevka20, text, pos, fontSize, 0, color);
+}
+
+void setup_ctx(GameContext *ctx) {
+  ctx->stage = StartScreen;
+  ctx->floor = 0;
+  ctx->fragment_location = (Vector2){0, 0};
+
+  ctx->open_inventory = false;
+  ctx->camera = (Camera2D){.target = {220, 220}, .offset = {360, 360}, .zoom = 2.0f};
+  ctx->player = (Sprite){
+      .center = {TILE_SIZE * 1.5, TILE_SIZE * 1.5},
+      .color = (Color){40, 120, 40, 255},
+      .radius = TILE_SIZE / 8,
+      .speedMultiplier = 1.0f,
+      .health = 100.0f,
+  };
+  ctx->equippedSpell = (Spell){
+      .class = Damage,
+      .castTime = 2.,
+      .damage = 10.,
+      .type = FrontAttack,
+
+  };
+  ctx->timePassed = 0.0;
+  ctx->castCooldown = 0.0;
+  ctx->dashCooldown = 0.0;
+  ctx->spellCooldown = 4.0;
 }
