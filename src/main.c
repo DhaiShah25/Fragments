@@ -31,7 +31,7 @@ typedef struct GameContext {
   float dashCooldown;
 } GameContext;
 
-void UpdateDrawFrame(GameContext *ctx);
+void UpdateDrawFrame(void *ctx);
 
 Font iosevka40;
 Font iosevka20;
@@ -98,7 +98,8 @@ int main(void) {
   return 0;
 }
 
-void UpdateDrawFrame(GameContext *ctx) {
+void UpdateDrawFrame(void *ctxptr) {
+  GameContext *ctx = (GameContext *)ctxptr;
   ctx->dashCooldown -= GetFrameTime();
   ctx->spellCooldown -= GetFrameTime();
   ctx->spellCooldown -= GetFrameTime();

@@ -3,7 +3,7 @@
 compile_commands.json
 
 # Build folder
-bin/
+[Bb]in/
 
 # Android files
 *apk*
@@ -19,3 +19,5 @@ android.*
 
 .direnv
 .github
+
+raw_assets
