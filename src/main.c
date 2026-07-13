@@ -198,7 +198,7 @@ void UpdateDrawFrame(void *ctxptr) {
       break;
     case Loss:
       Rectangle lossRect = {290, 310, 150, 60};
-      DrawRectangleRec(tutRec, (Color){20, 20, 20, 255});
+      DrawRectangleRec(lossRect, (Color){20, 20, 20, 255});
       DrawLabel("Restart!", (Vector2){300, 320}, 40, RAYWHITE);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tutRec)) {
         setup_ctx(ctx);
