@@ -25,15 +25,16 @@
       ];
 
       nativeBuildInputs = with pkgs; [
+        clang-tools
         cmake
         pkg-config
         wayland-scanner
+        ninja
+
         emscripten
-        clang_22
       ];
 
       LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib/:${pkgs.lib.makeLibraryPath buildInputs}:$NIX_LD_LIBRARY_PATH";
-      OPENGL_INCLUDE_DIR = "${pkgs.libGL.dev}/include";
     };
   };
 }
