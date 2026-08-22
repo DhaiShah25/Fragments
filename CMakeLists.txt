@@ -3,7 +3,6 @@ project(fragments)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-# Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(GLFW_BUILD_X11 OFF)

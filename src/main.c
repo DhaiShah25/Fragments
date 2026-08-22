@@ -1,43 +1,22 @@
+#include "global.h"
+#include <math.h>
 #include <raylib.h>
 #include <raymath.h>
 #include <rcamera.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif
 
-#include "global.h"
-
-typedef struct GameContext {
-  // Re-Arrange these based on access to optimize cache locality
-  GameStage stage;
-  int floor;
-  GameMap map;
-  Vector2 fragment_location;
-  bool open_inventory;
-  Camera2D camera;
-  Sprite player;
-
-  Spell equippedSpell;
-
-  float timePassed;
-  float spellCooldown;
-  float castCooldown;
-  float dashCooldown;
-} GameContext;
-
-void UpdateDrawFrame(void *ctx);
-void setup_ctx(GameContext *ctx);
+void update_draw_frame(void *ctx);
 
 Font iosevka40;
 Font iosevka20;
 
-Vector2 player_input(Sprite *player, GameMap map) {
+Vector2 player_input(Sprite *player) {
   Vector2 velocity = (Vector2){0, 0};
   if (IsKeyDown(KEY_A))
     velocity.x -= 1;
@@ -73,7 +52,7 @@ int main(void) {
   SetTargetFPS(60);
 
   while (!WindowShouldClose()) {
-    UpdateDrawFrame(&ctx);
+    update_draw_frame(&ctx);
   }
 #endif
 
@@ -84,15 +63,15 @@ int main(void) {
   return 0;
 }
 
-void UpdateDrawFrame(void *ctxptr) {
+void update_draw_frame(void *ctxptr) {
   GameContext *ctx = (GameContext *)ctxptr;
   ctx->dashCooldown -= GetFrameTime();
   ctx->spellCooldown -= GetFrameTime();
   ctx->spellCooldown -= GetFrameTime();
 
   if (ctx->stage >= Movement && ctx->stage != FloorChange) {
-    Vector2 velocity = player_input(&ctx->player, ctx->map);
-    move_sprite(&ctx->player, ctx->map, velocity);
+    Vector2 velocity = player_input(&ctx->player);
+    move_sprite(&ctx->player, ctx->map, velocity, ctx->mapsize);
   }
 
   if (IsKeyPressed(KEY_E)) {
@@ -111,15 +90,19 @@ void UpdateDrawFrame(void *ctxptr) {
     ClearBackground(BLACK);
 
   if (ctx->stage > StartAnimation && ctx->stage < Victory && ctx->stage != FloorChange) {
-    ctx->camera.target = ctx->player.center;
+    ctx->camera.target.x =
+        ctx->player.center.x + (ctx->camera.target.x - ctx->player.center.x) * exp(-16 * GetFrameTime());
+    ctx->camera.target.y =
+        ctx->player.center.y + (ctx->camera.target.y - ctx->player.center.y) * exp(-16 * GetFrameTime());
     BeginMode2D(ctx->camera);
-    draw_map(ctx->map, ctx->fragment_location);
+    draw_map(ctx->map, ctx->mapsize);
+    DrawCircleV(ctx->fragment_location, TILE_SIZE / 4, (Color){245, 235, 235, 255});
     DrawCircleV(ctx->player.center, ctx->player.radius, ctx->player.color);
     EndMode2D();
 
     if (CheckCollisionPointCircle(ctx->player.center, ctx->fragment_location, TILE_SIZE * 0.4)) {
       ctx->stage = FloorChange;
-      ctx->fragment_location = gen_map(ctx->map);
+      ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
       ctx->timePassed = 0;
 
       ctx->player.center = (Vector2){TILE_SIZE * 1.5, TILE_SIZE * 1.5};
@@ -143,7 +126,7 @@ void UpdateDrawFrame(void *ctxptr) {
       DrawRectangleRec(gameRect, (Color){20, 20, 20, 255});
       DrawLabel("Straight To Gameplay", (Vector2){220, 400}, 40, RAYWHITE);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), gameRect)) {
-        ctx->fragment_location = gen_map(ctx->map);
+        ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
         ctx->stage = Floors;
       }
       break;
@@ -152,7 +135,7 @@ void UpdateDrawFrame(void *ctxptr) {
       if (draw_start_animation(ctx->timePassed)) {
         ctx->timePassed = 0;
         ctx->stage++;
-        ctx->fragment_location = gen_map(ctx->map);
+        ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
       }
       break;
     case Movement:
@@ -179,7 +162,7 @@ void UpdateDrawFrame(void *ctxptr) {
       if (ctx->timePassed > 4) {
         ctx->floor++;
         ctx->stage = Floors;
-        ctx->fragment_location = gen_map(ctx->map);
+        ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
       }
       DrawRectangle(0, 0, CanvasWidth, CanvasWidth,
                     (Color){20, 10, 10, 255 - 255 * 0.25 * (ctx->timePassed - 2) * (ctx->timePassed - 2)});
@@ -200,14 +183,14 @@ void UpdateDrawFrame(void *ctxptr) {
       Rectangle lossRect = {290, 310, 150, 60};
       DrawRectangleRec(lossRect, (Color){20, 20, 20, 255});
       DrawLabel("Restart!", (Vector2){300, 320}, 40, RAYWHITE);
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tutRec)) {
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), lossRect)) {
         setup_ctx(ctx);
       }
 
       break;
   }
 
-  if (ctx->stage >= Attacking) {
+  if (ctx->stage >= Dashing) {
     if (ctx->dashCooldown <= 0)
       DrawPoly((Vector2){680, 680}, 6, 40, 0, (Color){200, 41, 55, 255});
     else
@@ -223,7 +206,7 @@ void UpdateDrawFrame(void *ctxptr) {
         ctx->stage = Attacking;
       ctx->dashCooldown = 1.0;
       Vector2 velocity = Vector2Scale(ctx->player.dir, 2000);
-      move_sprite(&ctx->player, ctx->map, velocity);
+      move_sprite(&ctx->player, ctx->map, velocity, ctx->mapsize);
     }
     // This casts the spell
     else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && ctx->spellCooldown <= 0) {
@@ -244,31 +227,4 @@ void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color) {
     DrawTextEx(iosevka40, text, pos, fontSize, 0, color);
   else
     DrawTextEx(iosevka20, text, pos, fontSize, 0, color);
-}
-
-void setup_ctx(GameContext *ctx) {
-  ctx->stage = StartScreen;
-  ctx->floor = 0;
-  ctx->fragment_location = (Vector2){0, 0};
-
-  ctx->open_inventory = false;
-  ctx->camera = (Camera2D){.target = {220, 220}, .offset = {360, 360}, .zoom = 2.0f};
-  ctx->player = (Sprite){
-      .center = {TILE_SIZE * 1.5, TILE_SIZE * 1.5},
-      .color = (Color){40, 120, 40, 255},
-      .radius = TILE_SIZE / 8,
-      .speedMultiplier = 1.0f,
-      .health = 100.0f,
-  };
-  ctx->equippedSpell = (Spell){
-      .class = Damage,
-      .castTime = 2.,
-      .damage = 10.,
-      .type = FrontAttack,
-
-  };
-  ctx->timePassed = 0.0;
-  ctx->castCooldown = 0.0;
-  ctx->dashCooldown = 0.0;
-  ctx->spellCooldown = 4.0;
 }

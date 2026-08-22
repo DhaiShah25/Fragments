@@ -6,10 +6,7 @@ constexpr int CanvasWidth = 720;
 constexpr int CanvasHeight = 720;
 
 // # Environment
-constexpr int MAP_SIZE = 15;
 constexpr float TILE_SIZE = 32.0;
-
-typedef char GameMap[MAP_SIZE][MAP_SIZE];
 
 typedef enum GameStage : uint8_t {
   StartScreen,
@@ -30,9 +27,9 @@ typedef enum GameStage : uint8_t {
   Loss
 } GameStage;
 
-Vector2 gen_map(GameMap map);
+Vector2 gen_map(uint8_t *map, int size);
 
-void draw_map(GameMap map, Vector2 fragment_location);
+void draw_map(uint8_t *map, int size);
 
 // # Spells
 typedef enum SpellClasses : uint8_t {
@@ -68,10 +65,35 @@ typedef struct Sprite {
   float health;
 } Sprite;
 
-void move_sprite(Sprite *player, GameMap map, Vector2 velocity);
+void move_sprite(Sprite *player, uint8_t *map, Vector2 velocity, int mapsize);
 
 // # Animations
 bool draw_start_animation(float timePassed);
 
 // # Utils
+
+typedef struct GameContext {
+  // Re-Arrange these based on access to optimize cache locality
+  GameStage stage;
+  int floor;
+  Vector2 fragment_location;
+  bool open_inventory;
+  Camera2D camera;
+  Sprite player;
+
+  Spell equippedSpell;
+
+  float timePassed;
+  float spellCooldown;
+  float castCooldown;
+  float dashCooldown;
+
+  uint8_t *map;
+  int mapsize;
+} GameContext;
+
 void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color);
+
+void setup_ctx(GameContext *ctx);
+
+int CoordToIdx(int x, int y, int size);
