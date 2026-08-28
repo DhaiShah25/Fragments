@@ -8,11 +8,11 @@ void setup_ctx(GameContext *ctx) {
   ctx->floor = 0;
   ctx->fragment_location = (Vector2){0, 0};
 
-  ctx->mapsize = 15;
+  ctx->mapsize = 5;
   ctx->map = malloc(ctx->mapsize * ctx->mapsize * sizeof(uint8_t));
 
   ctx->open_inventory = false;
-  ctx->camera = (Camera2D){.target = {220, 220}, .offset = {320, 180}, .zoom = 1.0f};
+  ctx->camera = (Camera2D){.target = {220, 220}, .offset = {320, 180}, .zoom = 2.0f};
   ctx->player = (Sprite){
       .center = {CELL_SIZE * 1.5, CELL_SIZE * 1.5},
       .color = (Color){40, 120, 40, 255},

@@ -1,12 +1,11 @@
 #include "global.h"
-#include <assert.h>
 #include <raylib.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 typedef struct {
-  uint8_t *data;
+  Coord *data;
   int length;
 } CoordArray;
 
@@ -30,7 +29,7 @@ void add_frontier(int row, int col, int size, uint8_t *map, CoordArray *frontier
   if (row >= 0 && col >= 0 && col < size && row < size && !(map[row * size + col] & FRONTIER) &&
       !(map[row * size + col] & VISITED)) {
     map[row * size + col] |= FRONTIER;
-    frontier_cells->data[frontier_cells->length] = row * size + col;
+    frontier_cells->data[frontier_cells->length] = (Coord){.row = row, .col = col};
     frontier_cells->length++;
   }
 }
@@ -44,7 +43,6 @@ void mark(int row, int col, int size, uint8_t *map, CoordArray *frontier_cells) 
 }
 
 Vector2 gen_map(uint8_t *map, int size) {
-  assert(size <= 15 && "Map is too large");
   // Walls are default on, setting a true bit means the wall is open / gone
   memset(map, 0, size * size * sizeof(uint8_t));
 
@@ -61,9 +59,9 @@ Vector2 gen_map(uint8_t *map, int size) {
 
   while (frontier_cells.length != 0) {
     int frontier_idx = GetRandomValue(0, frontier_cells.length - 1);
-    int map_idx = frontier_cells.data[frontier_idx];
-    row = map_idx / size;
-    col = map_idx % size;
+    Coord map_idx = frontier_cells.data[frontier_idx];
+    row = map_idx.row;
+    col = map_idx.col;
 
     if (row > 0 && map[(row - 1) * size + col] & VISITED) {
       neighbors[n_idx] = (Coord){.row = row - 1, .col = col};
@@ -82,9 +80,8 @@ Vector2 gen_map(uint8_t *map, int size) {
       n_idx++;
     }
 
-    mark_neighbor(neighbors[GetRandomValue(0, n_idx - 1)], row, col, size, map, map_idx);
-    if (GetRandomValue(0, 1))
-      mark_neighbor(neighbors[GetRandomValue(0, n_idx - 1)], row, col, size, map, map_idx);
+    for (int i = 0; i < GetRandomValue(1, 2); i++)
+      mark_neighbor(neighbors[GetRandomValue(0, n_idx - 1)], row, col, size, map, row * size + col);
 
     frontier_cells.data[frontier_idx] = frontier_cells.data[frontier_cells.length - 1];
     frontier_cells.length--;

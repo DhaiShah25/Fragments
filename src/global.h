@@ -26,15 +26,6 @@ typedef struct {
 typedef enum GameStage : uint8_t {
   StartScreen,
 
-  StartAnimation,
-
-  // Tutorial
-  Movement,
-  Dashing,
-  Attacking,
-  CastTime,
-  AdvanceFloor,
-
   // Gameplay
   FloorChange,
   Floors,
@@ -108,5 +99,6 @@ typedef struct GameContext {
 } GameContext;
 
 void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color);
+void DrawLabelCentered(const char *text, Vector2 pos, float fontSize, Color color);
 
 void setup_ctx(GameContext *ctx);
