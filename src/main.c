@@ -184,11 +184,6 @@ void update_draw_frame(void *ctxptr) {
       break;
   }
 
-  if (ctx->dashCooldown <= 0)
-    DrawPoly((Vector2){680, 680}, 6, 40, 0, (Color){200, 41, 55, 255});
-  else
-    DrawPoly((Vector2){680, 680}, 6, 40, 0, (Color){200, 41, 55, 200});
-
   // This is for dashing
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && ctx->dashCooldown <= 0) {
     ctx->dashCooldown = 1.0;
