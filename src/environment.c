@@ -1,44 +1,124 @@
 #include "global.h"
+#include <assert.h>
 #include <raylib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+  uint8_t *data;
+  int length;
+} CoordArray;
+
+void mark_neighbor(Coord neighbor, int row, int col, int size, uint8_t *map, int map_idx) {
+  if (neighbor.row > row) {
+    map[map_idx] |= WALL_DOWN;
+    map[neighbor.row * size + neighbor.col] |= WALL_UP;
+  } else if (neighbor.row < row) {
+    map[map_idx] |= WALL_UP;
+    map[neighbor.row * size + neighbor.col] |= WALL_DOWN;
+  } else if (neighbor.col > col) {
+    map[map_idx] |= WALL_RIGHT;
+    map[neighbor.row * size + neighbor.col] |= WALL_LEFT;
+  } else {
+    map[map_idx] |= WALL_LEFT;
+    map[neighbor.row * size + neighbor.col] |= WALL_RIGHT;
+  }
+}
+
+void add_frontier(int row, int col, int size, uint8_t *map, CoordArray *frontier_cells) {
+  if (row >= 0 && col >= 0 && col < size && row < size && !(map[row * size + col] & FRONTIER) &&
+      !(map[row * size + col] & VISITED)) {
+    map[row * size + col] |= FRONTIER;
+    frontier_cells->data[frontier_cells->length] = row * size + col;
+    frontier_cells->length++;
+  }
+}
+
+void mark(int row, int col, int size, uint8_t *map, CoordArray *frontier_cells) {
+  map[row * size + col] |= VISITED;
+  add_frontier(row - 1, col, size, map, frontier_cells);
+  add_frontier(row + 1, col, size, map, frontier_cells);
+  add_frontier(row, col - 1, size, map, frontier_cells);
+  add_frontier(row, col + 1, size, map, frontier_cells);
+}
+
 Vector2 gen_map(uint8_t *map, int size) {
-  memset(map, 1, size * size * sizeof(uint8_t));
-  for (int j = 1; j < size - 1; j++) {
-    map[CoordToIdx(1, j, size)] = 0;
-  }
+  assert(size <= 15 && "Map is too large");
+  // Walls are default on, setting a true bit means the wall is open / gone
+  memset(map, 0, size * size * sizeof(uint8_t));
 
-  for (int i = 3; i < size - 1; i += 2) {
-    int row_start = 1;
-    int row_size = 1;
-    for (int j = row_start; j < size - 1; j += 2) {
-      map[CoordToIdx(i, j, size)] = 0;
-      if (GetRandomValue(0, 1) == 0 && j != size - 2) {
-        map[CoordToIdx(i, j + 1, size)] = 0;
-        row_size++;
-      } else {
-        int col = row_start + 2 * GetRandomValue(0, row_size - 1);
-        map[CoordToIdx(i - 1, col, size)] = 0;
-        row_size = 1;
-        row_start = j + 2;
-      }
+  int row = GetRandomValue(0, size - 1);
+  int col = GetRandomValue(0, size - 1);
+
+  CoordArray frontier_cells;
+  frontier_cells.data = malloc(size * size);
+  frontier_cells.length = 0;
+  mark(row, col, size, map, &frontier_cells);
+
+  Coord neighbors[4] = {0};
+  int n_idx = 0;
+
+  while (frontier_cells.length != 0) {
+    int frontier_idx = GetRandomValue(0, frontier_cells.length - 1);
+    int map_idx = frontier_cells.data[frontier_idx];
+    row = map_idx / size;
+    col = map_idx % size;
+
+    if (row > 0 && map[(row - 1) * size + col] & VISITED) {
+      neighbors[n_idx] = (Coord){.row = row - 1, .col = col};
+      n_idx++;
     }
+    if (row + 1 < size && map[(row + 1) * size + col] & VISITED) {
+      neighbors[n_idx] = (Coord){.row = row + 1, .col = col};
+      n_idx++;
+    }
+    if (col > 0 && map[row * size + col - 1] & VISITED) {
+      neighbors[n_idx] = (Coord){.row = row, .col = col - 1};
+      n_idx++;
+    }
+    if (col + 1 < size && map[row * size + col + 1] & VISITED) {
+      neighbors[n_idx] = (Coord){.row = row, .col = col + 1};
+      n_idx++;
+    }
+
+    mark_neighbor(neighbors[GetRandomValue(0, n_idx - 1)], row, col, size, map, map_idx);
+    if (GetRandomValue(0, 1))
+      mark_neighbor(neighbors[GetRandomValue(0, n_idx - 1)], row, col, size, map, map_idx);
+
+    frontier_cells.data[frontier_idx] = frontier_cells.data[frontier_cells.length - 1];
+    frontier_cells.length--;
+    mark(row, col, size, map, &frontier_cells);
+    n_idx = 0;
   }
 
-  int x = (GetRandomValue(1, size / 2 - 1) * 2 + 1) * TILE_SIZE + TILE_SIZE / 2;
-  int y = (GetRandomValue(1, size / 2 - 1) * 2 + 1) * TILE_SIZE + TILE_SIZE / 2;
+  free(frontier_cells.data);
+
+  int x = GetRandomValue(0, size - 1) * CELL_SIZE + CELL_SIZE / 2;
+  int y = GetRandomValue(0, size - 1) * CELL_SIZE + CELL_SIZE / 2;
 
   return (Vector2){x, y};
 }
 
 void draw_map(uint8_t *map, int size) {
-  for (int x = 0; x < size; x++) {
-    for (int y = 0; y < size; y++) {
-      if (map[CoordToIdx(x, y, size)]) {
-        DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, (Color){100, 20, 20, 255});
-      } else
-        DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, (Color){40, 20, 20, 255});
+  for (int i = 0; i < size * size; i++) {
+    int x = i % size * CELL_SIZE;
+    int y = i / size * CELL_SIZE;
+
+    uint8_t cell = map[i];
+    DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){30, 10, 10, 255});
+    if ((cell & WALL_LEFT) == 0)
+      DrawRectangle(x, y, WALL_WIDTH, CELL_SIZE, (Color){80, 50, 50, 255});
+    if ((cell & WALL_RIGHT) == 0)
+      DrawRectangle(x + CELL_SIZE - WALL_WIDTH, y, WALL_WIDTH, CELL_SIZE, (Color){80, 50, 50, 255});
+    if ((cell & WALL_UP) == 0)
+      DrawRectangle(x, y, CELL_SIZE, WALL_WIDTH, (Color){80, 50, 50, 255});
+    if ((cell & WALL_DOWN) == 0)
+      DrawRectangle(x, y + CELL_SIZE - WALL_WIDTH, CELL_SIZE, WALL_WIDTH, (Color){80, 50, 50, 255});
+    x += CELL_SIZE;
+    if (x > CELL_SIZE * size) {
+      x = 0;
+      y += CELL_SIZE;
     }
   }
 }

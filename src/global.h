@@ -2,11 +2,26 @@
 #include <raylib.h>
 #include <stdint.h>
 
-constexpr int CanvasWidth = 720;
-constexpr int CanvasHeight = 720;
+constexpr int CanvasWidth = 640;
+constexpr int CanvasHeight = 360;
 
 // # Environment
-constexpr float TILE_SIZE = 32.0;
+constexpr int CELL_SIZE = 32;
+constexpr int WALL_WIDTH = 4;
+
+int CoordToIdx(int x, int y, int size);
+
+#define WALL_LEFT (1 << 0)
+#define WALL_RIGHT (1 << 1)
+#define WALL_UP (1 << 2)
+#define WALL_DOWN (1 << 3)
+#define VISITED (1 << 4)
+#define FRONTIER (1 << 5)
+
+typedef struct {
+  uint8_t row;
+  uint8_t col;
+} Coord;
 
 typedef enum GameStage : uint8_t {
   StartScreen,
@@ -95,5 +110,3 @@ typedef struct GameContext {
 void DrawLabel(const char *text, Vector2 pos, float fontSize, Color color);
 
 void setup_ctx(GameContext *ctx);
-
-int CoordToIdx(int x, int y, int size);

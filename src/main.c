@@ -90,22 +90,22 @@ void update_draw_frame(void *ctxptr) {
     ClearBackground(BLACK);
 
   if (ctx->stage > StartAnimation && ctx->stage < Victory && ctx->stage != FloorChange) {
-    ctx->camera.target.x =
-        ctx->player.center.x + (ctx->camera.target.x - ctx->player.center.x) * exp(-16 * GetFrameTime());
-    ctx->camera.target.y =
-        ctx->player.center.y + (ctx->camera.target.y - ctx->player.center.y) * exp(-16 * GetFrameTime());
+    ctx->camera.target.x = ctx->player.center.x + (ctx->camera.target.x - ctx->player.center.x) *
+                                                      exp(-16 * GetFrameTime());
+    ctx->camera.target.y = ctx->player.center.y + (ctx->camera.target.y - ctx->player.center.y) *
+                                                      exp(-16 * GetFrameTime());
     BeginMode2D(ctx->camera);
     draw_map(ctx->map, ctx->mapsize);
-    DrawCircleV(ctx->fragment_location, TILE_SIZE / 4, (Color){245, 235, 235, 255});
+    DrawCircleV(ctx->fragment_location, 4.0, (Color){245, 235, 235, 255});
     DrawCircleV(ctx->player.center, ctx->player.radius, ctx->player.color);
     EndMode2D();
 
-    if (CheckCollisionPointCircle(ctx->player.center, ctx->fragment_location, TILE_SIZE * 0.4)) {
+    if (CheckCollisionPointCircle(ctx->player.center, ctx->fragment_location, CELL_SIZE * 0.4)) {
       ctx->stage = FloorChange;
       ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
       ctx->timePassed = 0;
 
-      ctx->player.center = (Vector2){TILE_SIZE * 1.5, TILE_SIZE * 1.5};
+      ctx->player.center = (Vector2){CELL_SIZE * 1.5, CELL_SIZE * 1.5};
 
       if (ctx->floor == 9) {
         ctx->stage = Victory;
@@ -115,17 +115,19 @@ void update_draw_frame(void *ctxptr) {
 
   switch (ctx->stage) {
     case StartScreen:
-      Rectangle tutRec = {290, 310, 150, 60};
+      Rectangle tutRec = {230, 90, 150, 60};
       DrawRectangleRec(tutRec, (Color){20, 20, 20, 255});
-      DrawLabel("Tutorial", (Vector2){300, 320}, 40, RAYWHITE);
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tutRec)) {
+      DrawLabel("Tutorial", (Vector2){240, 100}, 40, RAYWHITE);
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+          CheckCollisionPointRec(GetMousePosition(), tutRec)) {
         ctx->stage = StartAnimation;
       }
 
-      Rectangle gameRect = {210, 390, 340, 60};
+      Rectangle gameRect = {110, 190, 340, 60};
       DrawRectangleRec(gameRect, (Color){20, 20, 20, 255});
-      DrawLabel("Straight To Gameplay", (Vector2){220, 400}, 40, RAYWHITE);
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), gameRect)) {
+      DrawLabel("Straight To Gameplay", (Vector2){120, 200}, 40, RAYWHITE);
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+          CheckCollisionPointRec(GetMousePosition(), gameRect)) {
         ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
         ctx->stage = Floors;
       }
@@ -139,7 +141,7 @@ void update_draw_frame(void *ctxptr) {
       }
       break;
     case Movement:
-      float coord = TILE_SIZE + TILE_SIZE / 8;
+      float coord = CELL_SIZE + CELL_SIZE / 8.0;
       if (ctx->player.center.x != coord && ctx->player.center.y != coord) {
         ctx->stage = Dashing;
       }
@@ -155,7 +157,8 @@ void update_draw_frame(void *ctxptr) {
       DrawLabel("Every spell has a cast time", (Vector2){0, 0}, 40, RAYWHITE);
       break;
     case AdvanceFloor:
-      DrawLabel("Collect the picture frame fragment in order\nto move to the next room", (Vector2){0, 0}, 40, RAYWHITE);
+      DrawLabel("Collect the picture frame fragment in order\nto move to the next room",
+                (Vector2){0, 0}, 40, RAYWHITE);
       break;
     case FloorChange:
       ctx->timePassed += GetFrameTime();
@@ -164,10 +167,12 @@ void update_draw_frame(void *ctxptr) {
         ctx->stage = Floors;
         ctx->fragment_location = gen_map(ctx->map, ctx->mapsize);
       }
-      DrawRectangle(0, 0, CanvasWidth, CanvasWidth,
-                    (Color){20, 10, 10, 255 - 255 * 0.25 * (ctx->timePassed - 2) * (ctx->timePassed - 2)});
-      DrawLabel("Completed Floor", (Vector2){260, 360}, 40,
-                (Color){255, 255, 255, 255 - 255 * 0.25 * (ctx->timePassed - 2) * (ctx->timePassed - 2)});
+      DrawRectangle(
+          0, 0, CanvasWidth, CanvasWidth,
+          (Color){20, 10, 10, 255 - 255 * 0.25 * (ctx->timePassed - 2) * (ctx->timePassed - 2)});
+      DrawLabel(
+          "Completed Floor", (Vector2){260, 360}, 40,
+          (Color){255, 255, 255, 255 - 255 * 0.25 * (ctx->timePassed - 2) * (ctx->timePassed - 2)});
       break;
     case Floors:
       char str[9] = "Floor ";
@@ -183,7 +188,8 @@ void update_draw_frame(void *ctxptr) {
       Rectangle lossRect = {290, 310, 150, 60};
       DrawRectangleRec(lossRect, (Color){20, 20, 20, 255});
       DrawLabel("Restart!", (Vector2){300, 320}, 40, RAYWHITE);
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), lossRect)) {
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+          CheckCollisionPointRec(GetMousePosition(), lossRect)) {
         setup_ctx(ctx);
       }
 
@@ -199,7 +205,8 @@ void update_draw_frame(void *ctxptr) {
     Vector2 mousePoint = GetMousePosition();
 
     // This is for dashing
-    if (((CheckCollisionPointCircle(mousePoint, (Vector2){680, 680}, 40) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
+    if (((CheckCollisionPointCircle(mousePoint, (Vector2){680, 680}, 40) &&
+          IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
          IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
         ctx->dashCooldown <= 0) {
       if (ctx->stage == Dashing)

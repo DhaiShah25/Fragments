@@ -1,30 +1,49 @@
 #include "global.h"
 #include <raylib.h>
+#include <raymath.h>
 #include <stdint.h>
 
 void move_sprite(Sprite *sprite, uint8_t *map, Vector2 velocity, int size) {
   float factor = GetFrameTime() * sprite->speedMultiplier;
 
-  float new_x = sprite->center.x + velocity.x * factor;
-  float new_y = sprite->center.y + velocity.y * factor;
+  velocity = Vector2Scale(velocity, factor);
 
-  int left = (new_x - sprite->radius) / TILE_SIZE;
-  int top = (sprite->center.y - sprite->radius) / TILE_SIZE;
-  int right = (new_x + sprite->radius) / TILE_SIZE;
-  int bottom = (sprite->center.y + sprite->radius) / TILE_SIZE;
+  int row = sprite->center.y / CELL_SIZE;
+  int col = sprite->center.x / CELL_SIZE;
 
-  if (!(map[CoordToIdx(left, top, size)] || map[CoordToIdx(right, top, size)] || map[CoordToIdx(left, bottom, size)] ||
-        map[CoordToIdx(right, bottom, size)])) {
-    sprite->center.x = new_x;
+  while ((int)velocity.x != 0) {
+    col = sprite->center.x / CELL_SIZE;
+
+    if (velocity.x > 0) {
+      if (!(map[row * size + col] & WALL_RIGHT) &&
+          sprite->center.x + sprite->radius > (col + 1) * CELL_SIZE - WALL_WIDTH)
+        break;
+      velocity.x--;
+      sprite->center.x++;
+    } else {
+      if (!(map[row * size + col] & WALL_LEFT) &&
+          sprite->center.x - sprite->radius < col * CELL_SIZE + WALL_WIDTH)
+        break;
+      velocity.x++;
+      sprite->center.x--;
+    }
   }
 
-  left = (sprite->center.x - sprite->radius) / TILE_SIZE;
-  top = (new_y - sprite->radius) / TILE_SIZE;
-  right = (sprite->center.x + sprite->radius) / TILE_SIZE;
-  bottom = (new_y + sprite->radius) / TILE_SIZE;
+  while ((int)velocity.y != 0) {
+    row = sprite->center.y / CELL_SIZE;
 
-  if (!(map[CoordToIdx(left, top, size)] || map[CoordToIdx(right, top, size)] || map[CoordToIdx(left, bottom, size)] ||
-        map[CoordToIdx(right, bottom, size)])) {
-    sprite->center.y = new_y;
+    if (velocity.y > 0) {
+      if (!(map[row * size + col] & WALL_DOWN) &&
+          sprite->center.y + sprite->radius > (row + 1) * CELL_SIZE - WALL_WIDTH)
+        break;
+      velocity.y--;
+      sprite->center.y++;
+    } else {
+      if (!(map[row * size + col] & WALL_UP) &&
+          sprite->center.y - sprite->radius < row * CELL_SIZE + WALL_WIDTH)
+        break;
+      velocity.y++;
+      sprite->center.y--;
+    }
   }
 }
