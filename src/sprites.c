@@ -3,6 +3,7 @@
 #include <raymath.h>
 #include <stdint.h>
 
+// This is pretty much only used for the player
 void move_sprite(Sprite *sprite, uint8_t *map, Vector2 velocity, int size) {
   float factor = GetFrameTime() * sprite->speedMultiplier;
 
@@ -11,6 +12,7 @@ void move_sprite(Sprite *sprite, uint8_t *map, Vector2 velocity, int size) {
   int row = sprite->center.y / CELL_SIZE;
   int col = sprite->center.x / CELL_SIZE;
 
+  // This is very inefficient but since it is barely used it is ok
   while ((int)velocity.x != 0) {
     col = sprite->center.x / CELL_SIZE;
 

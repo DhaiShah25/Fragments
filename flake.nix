@@ -31,6 +31,9 @@
         wayland-scanner
         ninja
 
+        odin
+        ols
+
         emscripten
       ];
 
